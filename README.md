@@ -12,7 +12,7 @@
 ## 🚀 Setup
 
 ```bash
-git clone https://github.com/yourname/BioFormer.git
+git clone https://github.com/dung-h/BioFormer
 cd BioFormer
 pip install -r requirements.txt
 ```
