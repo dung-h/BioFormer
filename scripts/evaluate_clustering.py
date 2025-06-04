@@ -121,11 +121,20 @@ def evaluate(rank, world_size, args):
                 
                 with autocast():
                     if args.visualize_attention:
-                        _, _, output, attention = model(binned_expr, cell_type, non_zero_mask, return_attention=True)
+                        _, _, output, attention = model(
+                            binned_expr=binned_expr,
+                            cell_type=cell_type,
+                            non_zero_mask=non_zero_mask,
+                            return_attention=True
+                        )
                     else:
-                        _, _, output = model(binned_expr, cell_type, non_zero_mask)
-                        
-                embeddings.append(output[:,0])  # Keep on CUDA
+                        _, _, output = model(
+                            binned_expr=binned_expr,
+                            cell_type=cell_type,
+                            non_zero_mask=non_zero_mask
+                        )
+
+                embeddings.append(output[:,0].cpu())  # Keep on CUDA
                 cell_types.append(cell_type)
                 study_ids.append(study_id)
                 global_indices.append(global_idx)
@@ -149,6 +158,7 @@ def evaluate(rank, world_size, args):
             logging.info(f"[Rank {rank}] global_indices shape: {global_indices.shape}, device: {cell_types.device}")
             
             total_size = len(dataset)
+            logging.info(f"[Rank {rank}] Total dataset size: {total_size}")
             embeddings_per_rank = [torch.zeros((total_size // world_size + (1 if i < total_size % world_size else 0), args.d_model), device=device) for i in range(world_size)]
             cell_types_per_rank = [torch.zeros(total_size // world_size + (1 if i < total_size % world_size else 0), dtype=torch.long, device=device) for i in range(world_size)]
             study_ids_per_rank = [torch.zeros(total_size // world_size + (1 if i < total_size % world_size else 0), dtype=torch.long, device=device) for i in range(world_size)]
@@ -241,7 +251,7 @@ def main():
     parser.add_argument('--data_dir', type=str, default="/home/tripham/BioFormer/test_clustering/test3")
     parser.add_argument('--selected_genes_file', type=str, default="/nfsshared/preprocessed/selected_genes.txt")
     parser.add_argument('--output_dir', type=str, default="/nfsshared/training1")
-    parser.add_argument('--checkpoint_path', type=str, default="/nfsshared/training/checkpoints/checkpoint_epoch_1_20250602_213400.pt")
+    parser.add_argument('--checkpoint_path', type=str, default="/nfsshared/training/checkpoints/checkpoint_epoch_1_20250604_065624.pt")
     parser.add_argument('--vocab_size', type=int, default=1000) 
     parser.add_argument('--num_studies', type=int, default=20)
     parser.add_argument('--num_bins', type=int, default=51)
@@ -249,7 +259,7 @@ def main():
     parser.add_argument('--nhead', type=int, default=8)
     parser.add_argument('--num_layers', type=int, default=12)
     parser.add_argument('--dropout', type=float, default=0.1)
-    parser.add_argument('--batch_size', type=int, default=16)
+    parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--mlm_weight', type=float, default=1.0)
     parser.add_argument('--cont_weight', type=float, default=0.1)
     parser.add_argument('--adv_weight', type=float, default=0.1)
@@ -257,8 +267,8 @@ def main():
     parser.add_argument('--ecs_weight', type=float, default=0.1)
     parser.add_argument('--ecs_margin', type=float, default=1.0)
     parser.add_argument('--no-ddp', action='store_true', help="Run without DDP (single GPU)")
-    parser.add_argument('--visualize_attention', action='store_true', help="Enable attention extraction during evaluation")
-
+    parser.add_argument('--visualize_attention', default=False, help="Enable attdention extraction during evaluation")
+  
     args = parser.parse_args()
     
     if args.no_ddp:
