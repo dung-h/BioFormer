@@ -1,0 +1,6 @@
+NMI Score: 0.9174
+ARI Score: 0.7041
+Silhouette Score: 0.9278
+Graph Connectivity Score: 0.3094
+AvgBio Score: 0.8498
+AvgBatch Score: 0.3094
